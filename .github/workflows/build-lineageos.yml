@@ -1,7 +1,7 @@
 
 name: Build LineageOS ROM
 
-runs-on: self-hosted
+
 on:
   workflow_dispatch:
     inputs:
