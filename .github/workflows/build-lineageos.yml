@@ -2,53 +2,6 @@ name: Build LineageOS ROM
 
 on:
   workflow_dispatch:
-    inputs:
-      SYNC_URL:
-        description: 'SYNC_URL'
-        required: true
-        default: 'https://github.com/LineageOS/android.git'
-      MANIFEST_BRANCH:
-        description: 'MANIFEST_BRANCH'
-        required: true
-        default: 'lineage-21.0'
-      DEVICE_TREE_URL:
-        description: 'DEVICE_TREE_URL'
-        required: true
-        default: 'https://github.com/1ndev-ui/ROM_CG65_device_tree.git'
-      DEVICE_TREE_BRANCH:
-        description: 'DEVICE_TREE_BRANCH'
-        required: true
-        default: 'lineage-21.0'
-      DEVICE_PATH:
-        description: 'DEVICE_PATH'
-        required: true
-        default: 'device/vortex/CG65'
-      COMMON_TREE_URL:
-        description: 'COMMON_TREE_URL (if no common tree, leave blank)'
-        required: false
-      COMMON_PATH:
-        description: 'COMMON_PATH (if no common tree, leave blank)'
-        required: false
-      VENDOR_TREE_URL:
-        description: 'VENDOR_TREE_URL'
-        required: true
-        default: 'https://github.com/YourUsername/vendor_tree.git'
-      VENDOR_TREE_BRANCH:
-        description: 'VENDOR_TREE_BRANCH'
-        required: true
-        default: 'lineage-21.0'
-      VENDOR_PATH:
-        description: 'VENDOR_PATH'
-        required: true
-        default: 'vendor/vortex/CG65'
-      DEVICE_NAME:
-        description: 'DEVICE_NAME'
-        required: true
-        default: 'CG65'
-      MAKEFILE_NAME:
-        description: 'MAKEFILE_NAME'
-        required: true
-        default: 'lineage_CG65'
 
 jobs:
   build-lineageos:
@@ -90,32 +43,49 @@ jobs:
           ccache -M 50G
         working-directory: ${{ steps.pwd.outputs.workspace-folder }}
 
+      - name: Define Constants
+        run: |
+          # Değişkenleri burada tanımlıyoruz
+          export SYNC_URL="https://github.com/LineageOS/android.git"
+          export MANIFEST_BRANCH="lineage-15.1"
+          export DEVICE_TREE_URL="https://github.com/Camgobeg/device_alps_redwood.git"
+          export DEVICE_TREE_BRANCH="full_redwood-user-8.0.0-O00623-1556208356-test-keys"
+          export DEVICE_PATH="device/sony/redwood"
+          export VENDOR_TREE_URL="https://github.com/AndroidBlobs/vendor_alps_redwood.git"
+          export VENDOR_TREE_BRANCH="full_redwood-user-8.0.0-O00623-1556208356-test-keys"
+          export VENDOR_PATH="vendor/alps/redwood"
+          export KERNEL_TREE_URL="https://github.com/SonyMTKDev/android_kernel_sony_mt6757.git"
+          export KERNEL_TREE_BRANCH="lineage-15.1"
+          export KERNEL_PATH="kernel/sony/mt6757"
+          export DEVICE_NAME="redwood"
+          export MAKEFILE_NAME="lineage_redwood"
+        id: constants
+
       - name: Clone and sync Lineage sources
         run: |
           cd ${{ steps.pwd.outputs.workspace-folder }}
           mkdir lineage
           cd lineage
-          repo init -u ${{ github.event.inputs.SYNC_URL }} -b ${{ github.event.inputs.MANIFEST_BRANCH }} --git-lfs
+          repo init -u ${{ steps.constants.outputs.SYNC_URL }} -b ${{ steps.constants.outputs.MANIFEST_BRANCH }} --git-lfs
           repo sync
         working-directory: ${{ steps.pwd.outputs.workspace-folder }}
 
       - name: Clone device tree
         run: |
           cd ${{ steps.pwd.outputs.workspace-folder }}/lineage/
-          git clone ${{ github.event.inputs.DEVICE_TREE_URL }} -b ${{ github.event.inputs.DEVICE_TREE_BRANCH }} ./${{ github.event.inputs.DEVICE_PATH }}
-        working-directory: ${{ steps.pwd.outputs.workspace-folder }}
-
-      - name: Clone common tree
-        if: github.event.inputs.COMMON_TREE_URL && github.event.inputs.COMMON_PATH
-        run: |
-          cd ${{ steps.pwd.outputs.workspace-folder }}/lineage/
-          git clone ${{ github.event.inputs.COMMON_TREE_URL }} -b ${{ github.event.inputs.DEVICE_TREE_BRANCH }} ./${{ github.event.inputs.COMMON_PATH }}
+          git clone ${{ steps.constants.outputs.DEVICE_TREE_URL }} -b ${{ steps.constants.outputs.DEVICE_TREE_BRANCH }} ./${{ steps.constants.outputs.DEVICE_PATH }}
         working-directory: ${{ steps.pwd.outputs.workspace-folder }}
 
       - name: Clone vendor tree
         run: |
           cd ${{ steps.pwd.outputs.workspace-folder }}/lineage/
-          git clone ${{ github.event.inputs.VENDOR_TREE_URL }} -b ${{ github.event.inputs.VENDOR_TREE_BRANCH }} ./${{ github.event.inputs.VENDOR_PATH }}
+          git clone ${{ steps.constants.outputs.VENDOR_TREE_URL }} -b ${{ steps.constants.outputs.VENDOR_TREE_BRANCH }} ./${{ steps.constants.outputs.VENDOR_PATH }}
+        working-directory: ${{ steps.pwd.outputs.workspace-folder }}
+
+      - name: Clone kernel tree
+        run: |
+          cd ${{ steps.pwd.outputs.workspace-folder }}/lineage/
+          git clone ${{ steps.constants.outputs.KERNEL_TREE_URL }} -b ${{ steps.constants.outputs.KERNEL_TREE_BRANCH }} ./${{ steps.constants.outputs.KERNEL_PATH }}
         working-directory: ${{ steps.pwd.outputs.workspace-folder }}
 
       - name: Set Swap Space
@@ -130,7 +100,7 @@ jobs:
           export USE_CCACHE=1
           export CCACHE_DIR=ccache/
           ccache -M 50G
-          lunch ${{ github.event.inputs.MAKEFILE_NAME }}
+          lunch ${{ steps.constants.outputs.MAKEFILE_NAME }}
           m otapackage
         working-directory: ${{ steps.pwd.outputs.workspace-folder }}
         continue-on-error: true
@@ -139,18 +109,18 @@ jobs:
         run: |
           ls -al ${{ steps.pwd.outputs.workspace-folder }}/lineage/out/target/product/
           echo
-          ls -al ${{ steps.pwd.outputs.workspace-folder }}/lineage/out/target/product/${{ github.event.inputs.DEVICE_NAME }}/
+          ls -al ${{ steps.pwd.outputs.workspace-folder }}/lineage/out/target/product/${{ steps.constants.outputs.DEVICE_NAME }}/
 
       - name: Upload to Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            ${{ steps.pwd.outputs.workspace-folder }}/lineage/out/target/product/${{ github.event.inputs.DEVICE_NAME }}/*.zip
-          name: ${{ github.event.inputs.DEVICE_NAME }}-${{ github.run_id }}
+            ${{ steps.pwd.outputs.workspace-folder }}/lineage/out/target/product/${{ steps.constants.outputs.DEVICE_NAME }}/*.zip
+          name: ${{ steps.constants.outputs.DEVICE_NAME }}-${{ github.run_id }}
           tag_name: ${{ github.run_id }}
           body: |
-            Manifest: ${{ github.event.inputs.MANIFEST_BRANCH }}
-            Device: ${{ github.event.inputs.DEVICE_NAME }}
+            Manifest: ${{ steps.constants.outputs.MANIFEST_BRANCH }}
+            Device: ${{ steps.constants.outputs.DEVICE_NAME }}
             Target: ${{ github.event.inputs.BUILD_TARGET }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
