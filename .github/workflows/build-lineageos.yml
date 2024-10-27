@@ -1,6 +1,4 @@
-
 name: Build LineageOS ROM
-
 
 on:
   workflow_dispatch:
@@ -25,6 +23,18 @@ on:
         description: 'DEVICE_PATH'
         required: true
         default: 'device/vortex/CG65'
+      VENDOR_TREE_URL:
+        description: 'VENDOR_TREE_URL'
+        required: true
+        default: 'https://github.com/YourOrg/vendor_vortex_cg65.git'
+      VENDOR_TREE_BRANCH:
+        description: 'VENDOR_TREE_BRANCH'
+        required: true
+        default: 'lineage-21.0'
+      VENDOR_PATH:
+        description: 'VENDOR_PATH'
+        required: true
+        default: 'vendor/vortex/CG65'
       COMMON_TREE_URL:
         description: 'COMMON_TREE_URL (if no common tree, leave blank)'
         required: false
@@ -94,6 +104,12 @@ jobs:
       run: |
         cd ${{ steps.pwd.outputs.workspace-folder }}/lineage/
         git clone ${{ github.event.inputs.DEVICE_TREE_URL }} -b ${{ github.event.inputs.DEVICE_TREE_BRANCH }} ./${{ github.event.inputs.DEVICE_PATH }}
+      working-directory: ${{ steps.pwd.outputs.workspace-folder }}
+
+    - name: Clone vendor tree
+      run: |
+        cd ${{ steps.pwd.outputs.workspace-folder }}/lineage/
+        git clone ${{ github.event.inputs.VENDOR_TREE_URL }} -b ${{ github.event.inputs.VENDOR_TREE_BRANCH }} ./${{ github.event.inputs.VENDOR_PATH }}
       working-directory: ${{ steps.pwd.outputs.workspace-folder }}
 
     - name: Clone common tree
