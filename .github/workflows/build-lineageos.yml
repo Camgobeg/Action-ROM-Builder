@@ -42,7 +42,7 @@ on:
 
 jobs:
   build-lineageos:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     permissions:
       contents: write
     steps:
